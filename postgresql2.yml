@@ -3,10 +3,9 @@
   tasks:
     - name: setup pg 11
       shell: |
-       rpm -Uvh https://download.postgresql.org/pub/repos/yum\
-          /reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm
+        rpm -Uvh https://download.postgresql.org/pub/repos/yum/11/redhat/rhel-7-x86_64/pgdg-centos11-11-2.noarch.rpm
 
-        yum install -y postgresql11-server postgresql11-contrib python-pip
+        yum install -y postgresql11  postgresql11-server python-pip
 
     - name: initdb
       shell: |
@@ -18,26 +17,43 @@
         systemctl enable postgresql-11.service
         systemctl start postgresql-11.service
 
-- hosts: "{{ hosts }}"
-  tasks:
-  - name: Create initial databse user zabbix
-    expect:
-      command: sudo -u postgres createuser --pwprompt zabbix
-      responses:
-        'Enter password for new role': 'zabbix'
-        'Enter it again': 'zabbix'
-
 - hosts: "{{hosts}}"
   tasks:
-    - name: Create initial database
-      shell: |
-        sudo -u postgres createdb -O zabbix zabbix
+    - name: replace peer with trust in postgresql login (temporary)
+      lineinfile:
+        dest: /var/lib/pgsql/11/data/pg_hba.conf
+        regexp: 'local   all             all                                     peer'
+        line: local   all             all                                     trust
+
+
+    - name: restart postgresql service
+      service:
+        name: postgresql-11
+        state: restarted
+
+    # psycopg2 needed for user, db creation
+    - pip:
+        name: psycopg2-binary
+
+    - name: create postgresql user
+      postgresql_user:
+        user: "zabbix"
+        password: "zabbix"
+        role_attr_flags: "CREATEDB,NOSUPERUSER"
+      become: true
+      become_user: postgres
+
+    - name: create postgresql db
+      postgresql_db:
+        name: "zabbix"
+        state: present
+      become: true
+      become_user: postgres
 
 - hosts: "{{hosts}}"
   tasks:
     - name: Import initial schema and data
-      expect:
-        command: zcat /usr/share/doc/zabbix-server-pgsql*/create.sql.gz | sudo -u zabbix psql zabbix
-        responses:
-          'Enter zabbix password': 'zabbix'
-        
+      shell: |
+        zcat /usr/share/doc/zabbix-server-pgsql*/create.sql.gz | sudo -u zabbix psql zabbix
+        expect"Enter zabbix password:"
+        send"{{zabbix}}\n"
