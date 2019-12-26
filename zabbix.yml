@@ -65,9 +65,7 @@
       lineinfile:
         path: /etc/httpd/conf.d/zabbix.conf
         regexp: '^        # php_value date.timezone Europe/Riga'
-        line: php_value date.timezone Africa/Cairo
-      notify:
-        - restart httpd
+        line: '        php_value date.timezone Africa/Cairo'
 
     - name: Configure the database for Zabbix server
       lineinfile:
@@ -80,16 +78,12 @@
         path: /etc/zabbix/zabbix_server.conf
         regexp: '^# DBHost=localhost'
         line: DBHost=localhost
-      notify:
-        - restart zabbix-server
 
     - name: configure zabbix-agent
       lineinfile:
         path: /etc/zabbix/zabbix_agentd.conf
         regexp: '^#ListenPort='
         line: ListenPort=10050
-      notify:
-        - restart zabbix-agentd
 
 - name: Configure firewall
   hosts: "{{ hosts }}"
@@ -122,7 +116,9 @@
     - name: restart httpd , zabbix-server , zabbix-agent
       service:
         name: "{{ item }}"
+        enabled: true
         state: restarted
       loop:
+        - httpd
         - zabbix-server
         - zabbix-agent
