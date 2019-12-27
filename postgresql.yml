@@ -1,0 +1,60 @@
+---
+- name: install postgres
+  hosts: "{{hosts}}"
+  become: true
+
+  tasks:
+    - name: install postgressql repo
+      yum:
+        name: "https://download.postgresql.org/pub/repos/yum\
+          /reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm"
+        state: present
+
+    - name: install postgressql11
+      yum:
+        name: postgresql11
+        state: present
+
+    - name: install postgresql server
+      yum:
+        name: postgresql11-server
+        state: present
+
+    - name: postgresql-11-setup initdb
+      shell: /usr/pgsql-11/bin/postgresql-11-setup initdb
+      ignore_errors: true
+
+    - name: enable and start postgresql
+      service:
+        name: postgresql-11
+        state: started
+        enabled: true
+
+    # psycopg2 needed for user, db creation
+    - pip:
+        name: psycopg2-binary
+
+    - name: create postgresql user
+      postgresql_user:
+        user: "zabbix"
+        password: "zabbix"
+        role_attr_flags: "CREATEDB,NOSUPERUSER"
+      become: true
+      become_user: postgres
+
+    - name: create postgresql db
+      postgresql_db:
+        name: "zabbix"
+        state: present
+      become: true
+      become_user: postgres
+
+    - name: replace peer with md5  in postgresql file
+      template:
+        src: pg_hba.conf.j2
+        dest: /var/lib/pgsql/11/data/pg_hba.conf
+
+    - name: restart postgresql service
+      service:
+        name: postgresql-11
+        state: restarted
