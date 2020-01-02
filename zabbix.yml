@@ -8,10 +8,7 @@
     shel: setenforce 0 && sudo sed -i 's/^SELINUX=.*/SELINUX=permissive/g' /etc/selinux/config
     ignore_error: true
 
-- name: install zabbix
-  hosts: "{{hosts}}"
-  become: true
- 
+- name: install zabbix 
   tasks:
     - name: install Zabbix repository
       yum:
@@ -37,9 +34,6 @@
           - php-mcrypt
 
 - name: configure php file
-  hosts: "{{hosts}}"
-  become: true
-
   tasks:
     - name: change php.ini file to time zone
       lineinfile:
@@ -54,17 +48,18 @@
         path: /etc/httpd/conf.d/zabbix.conf
         regexp: '^#DBPassword='
         line: DBPassword=zabbix
+      notify:
+         - restart zabbix-server
 
     - name: configure zabbix-agent
       lineinfile:
         path: /etc/zabbix/zabbix_agentd.conf
         regexp: '^#ListenPort='
         line: ListenPort=10050
+      notify:
+         - restart zabbix-agent
 
 - name: Configure firewall
-  hosts: "{{ hosts }}"
-  become: true
-
   tasks:
     - name: enable service in firewall
       firewalled:
@@ -76,7 +71,7 @@
         - httpd
         - https
 
-    - name:
+    - name: enable ports in firewall
       firewalled:
         port: "{{ item }}"
         state: enabled
@@ -88,14 +83,12 @@
         - 10051/tcp
 
 - name: Configure firewall
-  hosts: "{{ hosts }}"
-  become: true	
-
- handlers:
-     - name: restart httpd , zabbix-server , zabbix-agent
-       service:
-         name: "{{ item }}"
-         state: restarted
+  task:
+    - name: restart httpd , zabbix-server , zabbix-agent
+      service:
+        name: "{{ item }}"
+        enabled: true
+        state: restarted
        loop:
          - httpd
          - zabbix-server
