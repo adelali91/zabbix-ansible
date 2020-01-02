@@ -1,6 +1,6 @@
 ---
 - name: Set SELinux to permissive mode
-  hosts: "{{hosts}}"
+  hosts: "{{ hosts }}"
   become: true
 
   tasks:
@@ -16,9 +16,9 @@
           /zabbix-release-4.4-1.el7.noarch.rpm"
         state: present
 
-    - name: Install Zabbix server, frontend, agent
+    - name: Install Zabbix server, frontend, agent , php
       yum:
-        name: '{{items}}'
+        name: '{{ items }}'
         state: present
         with_items:
           - zabbix-server-pgsql
@@ -82,7 +82,7 @@
         - 10050/tcp
         - 10051/tcp
 
-- name: Configure firewall
+- name: Configure systemd to all
   task:
     - name: restart httpd , zabbix-server , zabbix-agent
       service:
