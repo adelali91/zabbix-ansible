@@ -39,9 +39,9 @@
 - name: configure php file
   hosts: "{{hosts}}"
   become: true
-	
+
   tasks:
-    - name: change php.in file to time zone
+    - name: change php.ini file to time zone
       lineinfile:
         path: /etc/httpd/conf.d/zabbix.conf
         regexp: '^# php_value date.timezone Europe/Riga'
