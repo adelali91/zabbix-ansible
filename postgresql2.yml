@@ -3,7 +3,9 @@
   tasks:
     - name: setup pg 11
       shell: |
-        rpm -Uvh https://yum.postgresql.org/11/redhat/rhel-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm
+       rpm -Uvh https://download.postgresql.org/pub/repos/yum\
+          /reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm
+
         yum install -y postgresql11-server postgresql11-contrib python-pip
 
     - name: initdb
@@ -15,15 +17,15 @@
       shell: |
         systemctl enable postgresql-11.service
         systemctl start postgresql-11.service
-        
+
 - hosts: "{{ hosts }}"
   tasks:
   - name: Create initial databse user zabbix
     expect:
       command: sudo -u postgres createuser --pwprompt zabbix
       responses:
-        'Enter zabbix password': 'zabbix'
-        'Re-enter zabbix password': 'zabbix'
+        'Enter password for new role': 'zabbix'
+        'Enter it again': 'zabbix'
 
 - hosts: "{{hosts}}"
   tasks:
