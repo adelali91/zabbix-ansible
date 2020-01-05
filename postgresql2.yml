@@ -1,15 +1,41 @@
 ---
-- hosts: postgresql11_hosts
+- hosts: "{{hosts}}"
   tasks:
     - name: setup pg 11
       shell: |
         rpm -Uvh https://yum.postgresql.org/11/redhat/rhel-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm
-        yum install -y postgresql11-server postgresql11-contrib
+        yum install -y postgresql11-server postgresql11-contrib python-pip
+
     - name: initdb
       shell: |
         /usr/pgsql-11/bin/postgresql-11-setup initdb
-      ignore_errors: yes
+      ignore_errors: true
+
     - name: setup service
       shell: |
         systemctl enable postgresql-11.service
         systemctl start postgresql-11.service
+        
+- hosts: "{{ hosts }}"
+  tasks:
+  - name: Create initial databse user zabbix
+    expect:
+      command: sudo -u postgres createuser --pwprompt zabbix
+      responses:
+        'Enter zabbix password': 'zabbix'
+        'Re-enter zabbix password': 'zabbix'
+
+- hosts: "{{hosts}}"
+  tasks:
+    - name: Create initial database
+      shell: |
+        sudo -u postgres createdb -O zabbix zabbix
+
+- hosts: "{{hosts}}"
+  tasks:
+    - name: Import initial schema and data
+      expect:
+        command: zcat /usr/share/doc/zabbix-server-pgsql*/create.sql.gz | sudo -u zabbix psql zabbix
+        responses:
+          'Enter zabbix password': 'zabbix'
+        
