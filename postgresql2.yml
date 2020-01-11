@@ -17,35 +17,21 @@
         systemctl enable postgresql-11.service
         systemctl start postgresql-11.service
 
-- hosts: "{{hosts}}"
-  tasks:
-    - name: replace peer with trust in postgresql login (temporary)
-      lineinfile:
-        dest: /var/lib/pgsql/11/data/pg_hba.conf
-        regexp: 'local   all             all                                     peer'
-        line: local   all             all                                     trust
-
-
-    - name: restart postgresql service
-      service:
-        name: postgresql-11
-        state: restarted
-
     # psycopg2 needed for user, db creation
     - pip:
         name: psycopg2-binary
 
     - name: create postgresql user
       postgresql_user:
-        user: "zabbix"
-        password: "zabbix"
+        user: "{{db_user}}"
+        password: "{{db_pass}}"
         role_attr_flags: "CREATEDB,NOSUPERUSER"
       become: true
       become_user: postgres
 
     - name: create postgresql db
       postgresql_db:
-        name: "zabbix"
+        name: "{{db_name}}"
         state: present
       become: true
       become_user: postgres
@@ -56,4 +42,4 @@
       shell: |
         zcat /usr/share/doc/zabbix-server-pgsql*/create.sql.gz | sudo -u zabbix psql zabbix
         expect"Enter zabbix password:"
-        send"{{zabbix}}\n"
+        send"{{db_pass}}"
