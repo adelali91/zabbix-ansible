@@ -9,15 +9,6 @@
         policy: targeted
         state: permissive
 
-- name: install zabbix
-  hosts: "{{ hosts }}"
-
-  tasks:
-    - name: upgrade all packages
-      yum:
-        name: '*'
-        state: latest
-
 - name: repo
   hosts: "{{hosts}}"
 
